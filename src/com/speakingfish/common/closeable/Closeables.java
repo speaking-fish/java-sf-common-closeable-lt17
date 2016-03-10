@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 /**
  * @since 1.5
  * 
+ * checks close() dynamically for correctly run in lesser than 1.7 environment (for ex: java.sql.*)
  * checks 1.7 AutoCloseable dynamically for correctly run in 1.7 environment
  *
  */
@@ -13,13 +14,15 @@ public class Closeables {
     public static final Class<?> __class__java_lang_AutoCloseable;
     public static final Method   __class__java_lang_AutoCloseable__close;
     
+    protected static final String METHOD_NAME_close = "close";
+    
     static {
         Class<?> resultClass;
         Method resultMethod;
         try {
             resultClass = Class.forName("java.lang.AutoCloseable");
             
-            resultMethod = resultClass.getMethod("close");
+            resultMethod = resultClass.getMethod(METHOD_NAME_close);
             
         } catch(Exception e) {
             resultClass  = null;
@@ -37,10 +40,20 @@ public class Closeables {
         }
     }
     
+    protected static Method tryGetDuckTypeCloseMethod(Class<?> src) {
+        try {
+            return src.getClass().getMethod(METHOD_NAME_close);
+        } catch(NoSuchMethodException e) {
+            return null;
+        }
+    }
+
     public boolean canClose(Object value) {
         if(value instanceof java.io.Closeable) {
             return true;
         } else if((null != __class__java_lang_AutoCloseable) && __class__java_lang_AutoCloseable.isInstance(value)) {
+            return true;
+        } else if(null != tryGetDuckTypeCloseMethod(value.getClass())) {
             return true;
         } else {
             return false;
@@ -55,7 +68,13 @@ public class Closeables {
             __class__java_lang_AutoCloseable__close.invoke(value);
             return true;
         } else {
-            return false;
+            final Method closeMethod = tryGetDuckTypeCloseMethod(value.getClass());
+            if(null != closeMethod) {
+                closeMethod.invoke(value);
+                return true;
+            } else {
+                return false;
+            }
         }
     }
     
@@ -75,7 +94,17 @@ public class Closeables {
             }
             return true;
         } else {
-            return false;
+            final Method closeMethod = tryGetDuckTypeCloseMethod(value.getClass());
+            if(null != closeMethod) {
+                try {
+                    closeMethod.invoke(value);
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
