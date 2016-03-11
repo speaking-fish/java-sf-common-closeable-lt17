@@ -49,6 +49,7 @@ public class Closeables {
     }
 
     public boolean canClose(Object value) {
+        /*
         if(value instanceof java.io.Closeable) {
             return true;
         } else if((null != __class__java_lang_AutoCloseable) && __class__java_lang_AutoCloseable.isInstance(value)) {
@@ -58,9 +59,20 @@ public class Closeables {
         } else {
             return false;
         }
+        */
+        if(null != __class__java_lang_AutoCloseable) {
+            return __class__java_lang_AutoCloseable.isInstance(value);
+        } else if(value instanceof java.io.Closeable) {
+            return true;
+        } else if(null != tryGetDuckTypeCloseMethod(value.getClass())) {
+            return true;
+        } else {
+            return false;
+        }
     }
     
     public static boolean tryClose(Object value) throws Exception {
+        /*
         if(value instanceof java.io.Closeable) {
             ((java.io.Closeable) value).close();
             return true;
@@ -76,9 +88,30 @@ public class Closeables {
                 return false;
             }
         }
+        */
+        if(null != __class__java_lang_AutoCloseable) {
+            if(__class__java_lang_AutoCloseable.isInstance(value)) {
+                __class__java_lang_AutoCloseable__close.invoke(value);
+                return true;
+            } else {
+                return false;
+            }
+        } else if(value instanceof java.io.Closeable) {
+            ((java.io.Closeable) value).close();
+            return true;
+        } else {
+            final Method closeMethod = tryGetDuckTypeCloseMethod(value.getClass());
+            if(null != closeMethod) {
+                closeMethod.invoke(value);
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
     
     public static boolean tryCatchClose(Object value) {
+        /*
         if(value instanceof java.io.Closeable) {
             try {
                 ((java.io.Closeable) value).close();
@@ -89,6 +122,38 @@ public class Closeables {
         } else if((null != __class__java_lang_AutoCloseable) && __class__java_lang_AutoCloseable.isInstance(value)) {
             try {
                 __class__java_lang_AutoCloseable__close.invoke(value);
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+            return true;
+        } else {
+            final Method closeMethod = tryGetDuckTypeCloseMethod(value.getClass());
+            if(null != closeMethod) {
+                try {
+                    closeMethod.invoke(value);
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+                return true;
+            } else {
+                return false;
+            }
+        }
+        */
+        if(null != __class__java_lang_AutoCloseable) {
+            if(__class__java_lang_AutoCloseable.isInstance(value)) {
+                try {
+                    __class__java_lang_AutoCloseable__close.invoke(value);
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } else if(value instanceof java.io.Closeable) {
+            try {
+                ((java.io.Closeable) value).close();
             } catch(Exception e) {
                 e.printStackTrace();
             }
